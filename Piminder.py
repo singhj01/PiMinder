@@ -109,20 +109,6 @@ def get_credentials():
         print('Storing credentials to', credential_path)
     return credentials
 
-
-def has_reminder(event):
-    # Return true if there's a reminder set for the event
-    has_default_reminder = event['reminders'].get('useDefault')
-    if has_default_reminder:
-
-        return True
-    else:
-        overrides = event['reminders'].get('overrides')
-        if overrides:
-            return True
-    return False
-
-
 def get_next_event(search_limit):
     # modified from https://developers.google.com/google-apps/calendar/quickstart/python
     # get all of the events on the calendar from now through X minutes from now
@@ -146,11 +132,14 @@ def get_next_event(search_limit):
         set_activity_light(SUCCESS_COLOR, False)
         # Get the event list
         event_list = events_result.get('items', [])
-	num_events = str(len(event_list))
+	if not event_list:
+	    num_events = 0    
+	else:
+	    num_events = str(len(event_list))
         if not event_list:
             #No upcoming events at all, so nothing to do right now
             print(datetime.datetime.now(), 'No entries returned')
-            return None
+            return None , num_events
         else:
 	    current_time = datetime.datetime.now()		  
             # loop through the events in the list
@@ -165,23 +154,22 @@ def get_next_event(search_limit):
 		    event_start = event_start1.replace(tzinfo=None)       
 		    # Only pick events that haven't happened yet
 		    if current_time < event_start:
-                         if has_reminder(event):
-                            #Get name of event
-                            event_summary = event['summary'] if 'summary' in event else 'No Title'
-                            print('Found event:', event_summary)
-                            print('Event starts:', start)
-                            # Time to start
-                            time_delta = event_start - current_time
-                            # Round to the nearest minute and return with the object
-                            event['num_minutes'] = time_delta.total_seconds() // 60
-                            return event , num_events
+                        #Get name of event
+                        event_summary = event['summary'] if 'summary' in event else 'No Title'
+                        print('Found event:', event_summary)
+                        print('Event starts:', start)
+                        # Time to start
+                        time_delta = event_start - current_time
+                        # Round to the nearest minute and return with the object
+                        event['num_minutes'] = time_delta.total_seconds() // 60
+                        return event , num_events
     except:
        
         print('Error connecting to calendar:', sys.exc_info()[0], '\n')
-        flash_all(1, 2, FAILURE_COLOR)
+        flash_all(1, 2, FAILURE_COLOR,X)
         set_activity_light(FAILURE_COLOR, False)
 
-    return None
+    return None , 0
 
 
 def main():
